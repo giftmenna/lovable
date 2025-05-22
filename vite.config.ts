@@ -19,7 +19,11 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         secure: false,
       }
-    }
+     },
+    allowedHosts: [
+      'lovable-6193.onrender.com',
+      'localhost',
+    ]
   },
   plugins: [
     react({
