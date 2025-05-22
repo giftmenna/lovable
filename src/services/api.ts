@@ -4,7 +4,7 @@ import axios from 'axios';
 // Update the API_URL configuration
 const API_URL = (() => {
   if (window.location.hostname === 'localhost') {
-    return 'http://localhost:5000/api';
+    return 'http://localhost:5001/api';
   }
   // For production, use relative path
   return '/api';

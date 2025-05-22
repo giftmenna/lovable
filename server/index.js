@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -998,6 +998,6 @@ app.get('/*path', (req, res) => {
 });
 
 // Start server
-app.listen(5000, () => {
-  console.log('Server running on port 5000');
+app.listen(5001, () => {
+  console.log('Server running on port 5001');
 });

@@ -7,22 +7,24 @@ import { visualizer } from "rollup-plugin-visualizer";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 5001, // Changed to match your backend port
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
       },
       '/assets': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         secure: false,
       }
     }
   },
   plugins: [
-    react(),
+    react({
+      jsxImportSource: 'react',
+    }),
     mode === 'development' && componentTagger(),
     mode === 'production' && visualizer({
       open: true,
@@ -33,12 +35,14 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
     },
   },
   build: {
     outDir: "dist",
     chunkSizeWarningLimit: 1600,
-    sourcemap: mode !== 'production',
+    sourcemap: true, // Enable sourcemaps for debugging
     minify: mode === 'production' ? 'esbuild' : false,
     rollupOptions: {
       output: {
@@ -68,5 +72,6 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
+    force: true // Force dependency optimization
   }
 }));
