@@ -16,9 +16,6 @@ import Dashboard from "./pages/user/Dashboard";
 import TransactionHistory from "./pages/user/TransactionHistory";
 import TransferMoney from "./pages/user/TransferMoney";
 import ForexDemo from "./pages/ForexDemo";
-import RetirementPost from "./pages/blog/RetirementPost";
-import ForexPost from "./pages/blog/ForexPost";
-import BudgetingPost from "./pages/blog/BudgetingPost";
 import BudgetPlanner from "./pages/BudgetPlanner";
 import LoanCalculator from "./pages/LoanCalculator";
 import SavingsGoalCalculator from "./pages/SavingsGoalCalculator";
@@ -34,9 +31,13 @@ import BankingWithPurpose from "./pages/BankingWithPurpose";
 import SustainableAccounts from "./pages/SustainableAccounts";
 import SustainabilityReport from "./pages/SustainabilityReport";
 import GreenInvestments from "./pages/GreenInvestments";
-import  Download  from "./pages/Download";
+import Download from "./pages/Download";
 
-
+// Blog Components
+import BlogPost from "./pages/blog/BlogPost";
+import RetirementPost from "./pages/blog/RetirementPost";
+import ForexPost from "./pages/blog/ForexPost";
+import BudgetingPost from "./pages/blog/BudgetingPost";
 
 // Create QueryClient with configuration to prevent excessive refetching
 const queryClient = new QueryClient({
@@ -72,23 +73,38 @@ const ProtectedRoute = ({ children, adminOnly = false }: { children: JSX.Element
 const AppRoutes = () => {
   return (
     <Routes>
+      {/* Authentication Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+      
+      {/* Main Routes */}
       <Route path="/" element={<Index />} />
       <Route path="/budget-planner" element={<BudgetPlanner />} />
       <Route path="/loan-calculator" element={<LoanCalculator />} />
       <Route path="/savings-goal-calculator" element={<SavingsGoalCalculator />} />
+      
+      {/* User Dashboard Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/transactions" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
       <Route path="/transfer" element={<ProtectedRoute><TransferMoney /></ProtectedRoute>} />
+      
+      {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
       <Route path="/admin/transactions" element={<ProtectedRoute adminOnly><AdminTransactions /></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
+      
+      {/* Forex Demo */}
       <Route path="/forex/demo" element={<ForexDemo />} />
+      
+      {/* Blog Routes */}
+      <Route path="/blog" element={<BlogPost title="Blog" date="Ongoing" content={<div>Welcome to our blog!</div>} relatedArticles={[]} />} />
       <Route path="/blog/retirement" element={<RetirementPost />} />
       <Route path="/blog/forex" element={<ForexPost />} />
       <Route path="/blog/budgeting" element={<BudgetingPost />} />
+   
+      
+      {/* Information Pages */}
       <Route path="/about" element={<AboutUsPage />} />
       <Route path="/cookie-policy" element={<CookiePolicy />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -97,19 +113,17 @@ const AppRoutes = () => {
       <Route path="/careers" element={<Careers />} />
       <Route path="/press" element={<Press />} />
       <Route path="/security" element={<Security />} />
+      
+      {/* Sustainability Pages */}
       <Route path="/banking-with-purpose" element={<BankingWithPurpose />} />
       <Route path="/sustainable-accounts" element={<SustainableAccounts />} />
       <Route path="/sustainability-report" element={<SustainabilityReport />} />
       <Route path="/green-investments" element={<GreenInvestments />} />
+      
+      {/* Download */}
       <Route path="/download" element={<Download />} />
       
-      {/* Add more routes as needed */}
-      
-      {/* Redirect to home if no match found */}
-      {/* Add more routes as needed */}
-      
-      {/* Redirect to home if no match found */}
-      {/* Catch-all route for 404 Not Found */}
+      {/* 404 Not Found */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
