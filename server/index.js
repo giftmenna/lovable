@@ -1,13 +1,16 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { Pool } from 'pg';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -986,7 +989,15 @@ app.patch('/api/settings', authenticateToken, async (req, res) => {
 // Serve the static files for avatars
 app.use('/assets/avatars', express.static(path.join(__dirname, '../src/assets/avatars')));
 
+// Serve static files from the Vite build output
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Catch-all route to serve index.html for SPA routing
+app.get('/*path', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
+});
+
 // Start server
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+app.listen(5000, () => {
+  console.log('Server running on port 5000');
 });

@@ -1,9 +1,29 @@
 import axios from 'axios';
 
 // Base URL for the API
-const API_URL = window.location.hostname === 'localhost'
-  ? 'http://localhost:5000/api'
-  : `${window.location.protocol}//${window.location.hostname}/api`;
+// Update the API_URL configuration
+const API_URL = (() => {
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:5000/api';
+  }
+  // For production, use relative path
+  return '/api';
+})();
+
+// Add API status check
+const checkApiStatus = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/status`);
+    console.log('API Status:', response.data);
+    return true;
+  } catch (error) {
+    console.warn('API not available, falling back to mock data');
+    return false;
+  }
+};
+
+// Update api instance configuration
+// (Removed duplicate api instance creation to avoid redeclaration error)
 
 console.log('Using API URL:', API_URL);
 
@@ -116,7 +136,7 @@ const getMockUsers = () => {
   }
 };
 
-const setMockUsers = (users) => {
+const setMockUsers = (users: any[]) => {
   localStorage.setItem('mockUsers', JSON.stringify(users));
 };
 
@@ -131,7 +151,7 @@ const getMockTransactions = () => {
   }
 };
 
-const setMockTransactions = (transactions) => {
+const setMockTransactions = (transactions: any[]) => {
   localStorage.setItem('mockTransactions', JSON.stringify(transactions));
 };
 
@@ -140,7 +160,7 @@ const getMockSettings = () => {
   return settings ? JSON.parse(settings) : {};
 };
 
-const setMockSettings = (settings) => {
+const setMockSettings = (settings: any) => {
   localStorage.setItem('mockSettings', JSON.stringify(settings));
 };
 
@@ -149,7 +169,7 @@ const generateId = () => {
 };
 
 // Mock login
-const mockAdminLogin = (username, password) => {
+const mockAdminLogin = (username: any, password: string) => {
   const users = getMockUsers();
   const user = users.find(u =>
     u.username === username &&
@@ -176,7 +196,7 @@ const mockAdminLogin = (username, password) => {
 
 // Auth services
 export const auth = {
-  login: async (username, password) => {
+  login: async (username: any, password: any) => {
     try {
       console.log('Login request:', { username });
       try {
@@ -230,7 +250,7 @@ export const users = {
       return getMockUsers();
     }
   },
-  getById: async (id) => {
+  getById: async (id: any) => {
     try {
       const response = await api.get(`/users/${id}`);
       console.log('User fetched from server:', response.data);
@@ -243,7 +263,7 @@ export const users = {
       return user;
     }
   },
-  create: async (userData) => {
+  create: async (userData: any) => {
     try {
       console.log('Creating user:', userData);
       const config = {
@@ -346,7 +366,7 @@ export const users = {
       return { user: newUser };
     }
   },
-  delete: async (id) => {
+  delete: async (id: any) => {
     try {
       const response = await api.delete(`/users/${id}`);
       const mockUsers = getMockUsers();
@@ -361,7 +381,7 @@ export const users = {
       return { success: true };
     }
   },
-  updateStatus: async (id, status) => {
+  updateStatus: async (id: any, status: any) => {
     try {
       const response = await api.patch(`/users/${id}/status`, { status });
       return response.data;
@@ -376,7 +396,7 @@ export const users = {
       return mockUsers[userIndex];
     }
   },
-  updateBalance: async (id, balance) => {
+  updateBalance: async (id: any, balance: any) => {
     try {
       const response = await api.patch(`/users/${id}/balance`, { balance });
       return response.data;
@@ -391,7 +411,7 @@ export const users = {
       return mockUsers[userIndex];
     }
   },
-  updateAvatar: async (id, data) => {
+  updateAvatar: async (id: any, data: any) => {
     try {
       const response = await api.post(`/users/${id}/avatar`, data, {
         headers: { 'Content-Type': 'application/json' },
@@ -420,7 +440,7 @@ export const users = {
       throw new Error('User not found');
     }
   },
-  deleteAvatar: async (id) => {
+  deleteAvatar: async (id: any) => {
     try {
       const response = await api.delete(`/users/${id}/avatar`);
       return response.data;
@@ -442,7 +462,7 @@ export const users = {
       throw new Error('User not found');
     }
   },
-  verifyPin: async (userId, pin) => {
+  verifyPin: async (userId: any, pin: any) => {
     try {
       const response = await api.post('/users/verify-pin', { userId, pin });
       console.log('PIN verified on server:', response.data);
@@ -473,7 +493,7 @@ export const transactions = {
       return getMockTransactions();
     }
   },
-  getByUserId: async (userId) => {
+  getByUserId: async (userId: any) => {
     try {
       const response = await api.get(`/transactions/user/${userId}`);
       console.log('User transactions fetched from server:', response.data);
@@ -490,7 +510,7 @@ export const transactions = {
       return userTransactions;
     }
   },
-  create: async (transactionData) => {
+  create: async (transactionData: any) => {
     try {
       const response = await api.post('/transactions', transactionData);
       console.log('Transaction created on server:', response.data);
@@ -544,7 +564,7 @@ export const transactions = {
       return { transaction: newTransaction };
     }
   },
-  delete: async (id) => {
+  delete: async (id: any) => {
     try {
       const response = await api.delete(`/transactions/${id}`);
       return response.data;
@@ -570,7 +590,7 @@ export const settings = {
       return getMockSettings();
     }
   },
-  update: async (settingsData) => {
+  update: async (settingsData: any) => {
     try {
       const response = await api.patch('/settings', settingsData);
       console.log('Settings updated on server:', response.data);

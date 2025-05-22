@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 node_modules/
 dist/
+stats.html
 build/
 .env
 *.log
@@ -25,4 +26,4 @@ dist-ssr
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+*.sw?stats.html
