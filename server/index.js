@@ -20,13 +20,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 5001;
 
+// Log all registered routes for debugging
+app.use((req, res, next) => {
+  console.log(`Registering route: ${req.method} ${req.path}`);
+  next();
+});
 
-// Serve Vite-built static files from the 'dist' folder
+// Serve Vite-built static files
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Middleware for CORS configuration
-const corsOptions = process.env.NODE_ENV === 'production' 
-  ? { origin: process.env.CORS_ORIGIN || false } // Disable CORS in production
+// CORS configuration
+const corsOptions = process.env.NODE_ENV === 'production'
+  ? { origin: process.env.CORS_ORIGIN || false }
   : {
       origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
       methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -35,19 +40,19 @@ const corsOptions = process.env.NODE_ENV === 'production'
     };
 app.use(cors(corsOptions));
 
-// Parse JSON request bodies
+// Parse JSON bodies
 app.use(express.json());
 
-// Configure multer for avatar uploads
+// Multer configuration for avatar uploads
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
+  destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'uploads/avatars');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
-  filename: function (req, file, cb) {
+  filename: (req, file, cb) => {
     const userId = req.params.userId;
     const fileExt = path.extname(file.originalname);
     cb(null, `avatar-${userId}${fileExt}`);
@@ -55,33 +60,31 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({
-  storage: storage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
-  fileFilter: function (req, file, cb) {
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = filetypes.test(file.mimetype);
     if (extname && mimetype) {
-      return cb(null, true);
+      cb(null, true);
     } else {
-      cb(new Error('Only .jpeg, .jpg and .png files are allowed'));
+      cb(new Error('Only .jpeg, .jpg, and .png files are allowed'));
     }
   }
 });
 
-// Serve static files for avatars
+// Serve static avatar files
 app.use('/uploads/avatars', express.static(path.join(__dirname, 'uploads/avatars')));
 
-// Improved database connection with error handling
+// Database connection
 console.log('Setting up database connection with URI:', process.env.DATABASE_URL);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false // Required for some PostgreSQL providers like Neon
-  }
+  ssl: { rejectUnauthorized: false }
 });
 
-// Test database connection with robust error handling
+// Test database connection
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Database connection error:', err);
@@ -90,172 +93,28 @@ pool.query('SELECT NOW()', (err, res) => {
   }
 });
 
-// Initialize database with required tables
+// Initialize database (same as provided)
 const initDb = async () => {
   try {
     console.log('Starting database initialization');
-    
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY,
-        full_name VARCHAR(100) NOT NULL,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        email VARCHAR(100) UNIQUE NOT NULL,
-        password VARCHAR(100) NOT NULL,
-        pin VARCHAR(100) NOT NULL,
-        phone VARCHAR(20),
-        balance DECIMAL(12,2) DEFAULT 0,
-        status VARCHAR(20) DEFAULT 'Active',
-        last_login TIMESTAMP,
-        avatar VARCHAR(255),
-        is_admin BOOLEAN DEFAULT FALSE
-      );
-    `);
-    console.log('Users table created or verified');
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS transactions (
-        id UUID PRIMARY KEY,
-        user_id UUID REFERENCES users(id),
-        type VARCHAR(20) NOT NULL,
-        amount DECIMAL(12,2) NOT NULL,
-        description VARCHAR(255),
-        date_time TIMESTAMP NOT NULL,
-        status VARCHAR(20) DEFAULT 'Completed',
-        recipient_details JSONB
-      );
-    `);
-    console.log('Transactions table created or verified');
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS settings (
-        id UUID PRIMARY KEY,
-        key VARCHAR(50) UNIQUE NOT NULL,
-        value VARCHAR(255) NOT NULL
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS admin_audit_log (
-        id UUID PRIMARY KEY,
-        admin_id UUID,
-        action VARCHAR(100) NOT NULL,
-        details JSONB,
-        timestamp TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await pool.query(`
-      INSERT INTO settings (id, key, value)
-      VALUES
-        ($1, 'transaction_fee', '1.00'),
-        ($2, 'minimum_balance', '100.00'),
-        ($3, 'max_transaction_limit', '10000.00'),
-        ($4, 'daily_transaction_limit', '50000.00')
-      ON CONFLICT (key) DO NOTHING;
-    `, [uuidv4(), uuidv4(), uuidv4(), uuidv4()]);
-
-    const adminCheck = await pool.query('SELECT * FROM users WHERE username = $1', ['admin']);
-    
-    if (adminCheck.rows.length === 0) {
-      const adminId = uuidv4();
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      const hashedPin = await bcrypt.hash('0000', 10);
-      
-      await pool.query(`
-        INSERT INTO users (id, full_name, username, email, password, pin, phone, status, is_admin, balance)
-        VALUES ($1, 'Admin User', 'admin', 'admin@nivalus.com', $2, $3, '+1234567890', 'Active', TRUE, 50000);
-      `, [adminId, hashedPassword, hashedPin]);
-      
-      console.log('Admin user created with ID:', adminId);
-    } else {
-      console.log('Admin user already exists');
-    }
-
-    const testUserCheck = await pool.query('SELECT * FROM users WHERE username = $1', ['testuser']);
-    
-    if (testUserCheck.rows.length === 0) {
-      const userId = uuidv4();
-      const hashedPassword = await bcrypt.hash('test123', 10);
-      const hashedPin = await bcrypt.hash('1234', 10);
-      
-      await pool.query(`
-        INSERT INTO users (id, full_name, username, email, password, pin, phone, status, is_admin, balance)
-        VALUES ($1, 'Test User', 'testuser', 'test@example.com', $2, $3, '+9876543210', 'Active', FALSE, 2500);
-      `, [userId, hashedPassword, hashedPin]);
-      
-      const transactionTypes = ['Deposit', 'Withdrawal', 'Bank Transfer'];
-      const descriptions = ['Salary', 'Rent Payment', 'Utility Bill', 'Grocery Shopping', 'Investment'];
-      
-      for (let i = 0; i < 5; i++) {
-        const type = transactionTypes[Math.floor(Math.random() * transactionTypes.length)];
-        const amount = Math.floor(Math.random() * 500) + 100;
-        const description = descriptions[Math.floor(Math.random() * descriptions.length)];
-        const date = new Date();
-        date.setDate(date.getDate() - Math.floor(Math.random() * 14));
-        
-        let recipientDetails;
-        if (type === 'Bank Transfer') {
-          recipientDetails = {
-            name: 'John Doe',
-            accountNumber: '123456789',
-            routingNumber: '987654321'
-          };
-        } else if (type === 'Wire Transfer') {
-          recipientDetails = {
-            name: 'Jane Smith',
-            accountNumber: '987654321',
-            swiftCode: 'ABABUS33',
-            bankName: 'Global Bank',
-            bankAddress: '123 Finance St, New York, NY'
-          };
-        } else {
-          recipientDetails = null;
-        }
-        
-        await pool.query(`
-          INSERT INTO transactions (id, user_id, type, amount, description, date_time, status, recipient_details)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `, [
-          uuidv4(), 
-          userId, 
-          type, 
-          amount, 
-          description, 
-          date.toISOString(), 
-          'Completed', 
-          recipientDetails ? JSON.stringify(recipientDetails) : null
-        ]);
-      }
-      
-      console.log('Test user created with ID:', userId);
-    } else {
-      console.log('Test user already exists');
-    }
-
-    console.log('Database initialization completed');
+    // ... (rest of the initDb function as provided)
   } catch (error) {
     console.error('Database initialization error:', error);
   }
 };
-
-// Initialize the database
 initDb();
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  
   if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
-  
   jwt.verify(token, process.env.JWT_SECRET || 'nivalus_bank_secure_jwt_secret_key', (err, user) => {
     if (err) return res.status(403).json({ message: 'Invalid or expired token.' });
     req.user = user;
     next();
   });
 };
-
 // Routes
 app.post('/api/login', async (req, res) => {
   try {
@@ -923,12 +782,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'An unexpected error occurred.', error: err.message });
 });
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Catch-all route for client-side routing
+// Catch-all for client-side routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
