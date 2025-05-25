@@ -5,76 +5,20 @@ import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 5001, // Changed to match your backend port
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5001',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/assets': {
-        target: 'http://localhost:5001',
-        changeOrigin: true,
-        secure: false,
-      }
-     },
-    allowedHosts: [
-      'lovable-6193.onrender.com',
-      'localhost',
-    ]
+    host: '0.0.0.0', // Use '0.0.0.0' for Render compatibility
+    port: process.env.PORT ? parseInt(process.env.PORT) : 8080, // Respect PORT env variable
   },
   plugins: [
-    react({
-      jsxImportSource: 'react',
-    }),
+    react(),
     mode === 'development' && componentTagger(),
-    mode === 'production' && visualizer({
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    }),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "node_modules/react"),
-      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
     },
   },
   build: {
-    outDir: "dist",
-    chunkSizeWarningLimit: 1600,
-    sourcemap: true, // Enable sourcemaps for debugging
-    minify: mode === 'production' ? 'esbuild' : false,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
-            }
-            if (id.includes('lodash') || id.includes('ramda')) {
-              return 'vendor-utils';
-            }
-            if (id.includes('@radix-ui') || id.includes('shadcn')) {
-              return 'vendor-ui';
-            }
-            return 'vendor';
-          }
-        },
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
-      },
-    },
-  },
-  esbuild: {
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
-    legalComments: 'none',
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom'],
-    force: true // Force dependency optimization
+    chunkSizeWarningLimit: 3000, // Size in kB
+    outDir: 'dist', // Explicitly specify output directory (already default)
   }
 }));
