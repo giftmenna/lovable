@@ -9,6 +9,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 5001;
 
