@@ -19,6 +19,6 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     chunkSizeWarningLimit: 3000, // Size in kB
-    outDir: 'dist', // Explicitly specify output directory (already default)
+    outDir: './server/dist', // Explicitly specify output directory (already default)
   }
 }));
