@@ -1,15 +1,17 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import { Pool } from 'pg';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-
+// Configure dotenv
+dotenv.config();
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +19,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 5001;
+
 
 // Serve Vite-built static files from the 'dist' folder
 app.use(express.static(path.join(__dirname, 'dist')));
