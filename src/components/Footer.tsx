@@ -98,6 +98,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/blog" className="text-muted-foreground hover:text-bank-gold transition-colors">
+                  Blog
+                </Link>
+              </li>
+              <li>
                 <Link to="/security" className="text-muted-foreground hover:text-bank-gold transition-colors">
                   Security
                 </Link>
@@ -110,7 +115,7 @@ export function Footer() {
             <address className="not-italic text-muted-foreground space-y-2">
               <p>214 Lexington Ave, Apt 5B NEW YORK, NY 10016 USA</p>
               <p>Financial District</p>
-              <p>Email: support@nivalusbank.com</p>
+              <p>Email: contactnivalus@gmail.com</p>
               <p>Phone: +1 (555) 783-1872</p>
             </address>
           </div>

@@ -18,13 +18,12 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { Lock, LogIn, Eye, EyeOff } from "lucide-react";
+import { LogIn, Eye, EyeOff } from "lucide-react";
 
 const formSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
-
 type FormValues = z.infer<typeof formSchema>;
 
 export default function Login() {
@@ -32,63 +31,45 @@ export default function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
-  // Initialize form
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+    defaultValues: { username: "", password: "" },
   });
 
   const onSubmit = async (data: FormValues) => {
+    if (isLoading) return;
     setIsLoading(true);
-    
     try {
-      await login(data.username, data.password);
-      
-      // The login function in AuthContext will handle setting the user
-      // We just need to check if we have a user after login
-      
-      // Get updated user after login
-      const updatedUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}') : null;
-      
-      if (!updatedUser) {
-        throw new Error("Login failed");
-      }
-      
-      toast.success("Login successful!");
-      
-      // For admin, redirect to admin dashboard
-      if (updatedUser.isAdmin) {
-        navigate("/admin");
-      } else {
-        // For regular users, redirect to home
-        navigate("/");
-      }
+      // login() now returns the user object
+      const user = await login(data.username, data.password);
+      // You can show a success message here if desired
+      navigate(user.isAdmin ? "/admin" : "/dashboard", { replace: true });
     } catch (error: any) {
-      console.error("Login error:", error);
-      const errorMessage = error.message || "Login failed. Please try again.";
-      toast.error(errorMessage);
+      console.error("❌ Login error:", error);
+      toast.error(
+        error.message || "Login failed. Please check your credentials."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // If user is already logged in, redirect to appropriate page
   if (!loading && currentUser) {
-    return <Navigate to={currentUser.isAdmin ? "/admin" : "/"} />;
+    return (
+      <Navigate
+        to={currentUser.isAdmin ? "/admin" : "/dashboard"}
+        replace
+      />
+    );
   }
+
+  const togglePasswordVisibility = () =>
+    setShowPassword((prev) => !prev);
 
   return (
     <Layout>
       <Navbar />
-      
       <div className="min-h-screen pt-24 pb-12 px-4 sm:px-6 lg:px-8 flex flex-col">
         <div className="flex-1 flex flex-col justify-center max-w-md w-full mx-auto">
           <div className="text-center mb-8">
@@ -97,10 +78,12 @@ export default function Login() {
               Sign in to your Nivalus Bank account
             </p>
           </div>
-          
           <div className="bg-card rounded-lg shadow-lg p-6 animate-fade-in">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <FormField
                   control={form.control}
                   name="username"
@@ -118,7 +101,6 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
                 <FormField
                   control={form.control}
                   name="password"
@@ -154,7 +136,6 @@ export default function Login() {
                     </FormItem>
                   )}
                 />
-                
                 <div className="text-sm text-right">
                   <Link
                     to="/forgot-password"
@@ -163,7 +144,6 @@ export default function Login() {
                     Forgot password?
                   </Link>
                 </div>
-                
                 <Button
                   type="submit"
                   className="w-full bg-bank-gold hover:bg-bank-gold/90 text-bank-dark-text mt-2"
@@ -183,24 +163,31 @@ export default function Login() {
                 </Button>
               </form>
             </Form>
-            
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <Link to="/signup" className="text-bank-gold hover:underline">
+                <Link
+                  to="/signup"
+                  className="text-bank-gold hover:underline"
+                >
                   Sign up
                 </Link>
               </p>
             </div>
-
             <div className="mt-4 text-center">
               <p className="text-sm text-muted-foreground">
                 By signing in, you agree to our{" "}
-                <Link to="/terms-of-service" className="text-bank-gold hover:underline">
+                <Link
+                  to="/terms-of-service"
+                  className="text-bank-gold hover:underline"
+                >
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link to="/privacy-policy" className="text-bank-gold hover:underline">
+                <Link
+                  to="/privacy-policy"
+                  className="text-bank-gold hover:underline"
+                >
                   Privacy Policy
                 </Link>
               </p>

@@ -16,9 +16,6 @@ import Dashboard from "./pages/user/Dashboard";
 import TransactionHistory from "./pages/user/TransactionHistory";
 import TransferMoney from "./pages/user/TransferMoney";
 import ForexDemo from "./pages/ForexDemo";
-import RetirementPost from "./pages/blog/RetirementPost";
-import ForexPost from "./pages/blog/ForexPost";
-import BudgetingPost from "./pages/blog/BudgetingPost";
 import BudgetPlanner from "./pages/BudgetPlanner";
 import LoanCalculator from "./pages/LoanCalculator";
 import SavingsGoalCalculator from "./pages/SavingsGoalCalculator";
@@ -34,96 +31,92 @@ import BankingWithPurpose from "./pages/BankingWithPurpose";
 import SustainableAccounts from "./pages/SustainableAccounts";
 import SustainabilityReport from "./pages/SustainabilityReport";
 import GreenInvestments from "./pages/GreenInvestments";
-import  Download  from "./pages/Download";
+import Download from "./pages/Download";
+import BlogPost from "./pages/blog/BlogPost";
+import RetirementPost from "./pages/blog/RetirementPost";
+import ForexPost from "./pages/blog/ForexPost";
+import BudgetingPost from "./pages/blog/BudgetingPost";
 
-
-
-// Create QueryClient with configuration to prevent excessive refetching
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 60 * 60, // 1 hour
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours
+      staleTime: 1000 * 60 * 60,
+      gcTime: 1000 * 60 * 60 * 24,
     },
   },
 });
 
-// Protected route component
-const ProtectedRoute = ({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) => {
-  const { currentUser, loading, isAdmin } = useAuth();
+import { ReactNode } from "react";
 
+type ProtectedRouteProps = {
+  children: ReactNode;
+  adminOnly?: boolean;
+};
+
+/**
+ * ProtectedRoute wraps routes which require authentication.  If the
+ * user is not logged in, they are redirected to `/login`.  For
+ * admin‑only routes, non‑admins are redirected to `/dashboard` by
+ * default instead of `/`.  This ensures regular users are sent to
+ * their own dashboard rather than the home page when they attempt to
+ * access admin pages.
+ */
+const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
+  const { currentUser, loading, isAdmin } = useAuth();
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
-
   if (!currentUser) {
     return <Navigate to="/login" />;
   }
-
   if (adminOnly && !isAdmin) {
-    return <Navigate to="/" />;
+    return <Navigate to="/dashboard" />;
   }
-
-  return children;
+  return <>{children}</>;
 };
 
-// App with routes wrapped in providers
-const AppRoutes = () => {
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/" element={<Index />} />
-      <Route path="/budget-planner" element={<BudgetPlanner />} />
-      <Route path="/loan-calculator" element={<LoanCalculator />} />
-      <Route path="/savings-goal-calculator" element={<SavingsGoalCalculator />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/transactions" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
-      <Route path="/transfer" element={<ProtectedRoute><TransferMoney /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
-      <Route path="/admin/transactions" element={<ProtectedRoute adminOnly><AdminTransactions /></ProtectedRoute>} />
-      <Route path="/admin/settings" element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
-      <Route path="/forex/demo" element={<ForexDemo />} />
-      <Route path="/blog/retirement" element={<RetirementPost />} />
-      <Route path="/blog/forex" element={<ForexPost />} />
-      <Route path="/blog/budgeting" element={<BudgetingPost />} />
-      <Route path="/about" element={<AboutUsPage />} />
-      <Route path="/cookie-policy" element={<CookiePolicy />} />
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/terms-of-service" element={<TermsOfService />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/careers" element={<Careers />} />
-      <Route path="/press" element={<Press />} />
-      <Route path="/security" element={<Security />} />
-      <Route path="/banking-with-purpose" element={<BankingWithPurpose />} />
-      <Route path="/sustainable-accounts" element={<SustainableAccounts />} />
-      <Route path="/sustainability-report" element={<SustainabilityReport />} />
-      <Route path="/green-investments" element={<GreenInvestments />} />
-      <Route path="/download" element={<Download />} />
-      
-      {/* Add more routes as needed */}
-      
-      {/* Redirect to home if no match found */}
-      {/* Add more routes as needed */}
-      
-      {/* Redirect to home if no match found */}
-      {/* Catch-all route for 404 Not Found */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
-
-// Main App component
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <AppRoutes />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/budget-planner" element={<BudgetPlanner />} />
+            <Route path="/loan-calculator" element={<LoanCalculator />} />
+            <Route path="/savings-goal-calculator" element={<SavingsGoalCalculator />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/transactions" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
+            <Route path="/transfer" element={<ProtectedRoute><TransferMoney /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/transactions" element={<ProtectedRoute adminOnly><AdminTransactions /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute adminOnly><AdminSettings /></ProtectedRoute>} />
+            <Route path="/forex/demo" element={<ForexDemo />} />
+            <Route path="/blog" element={<BlogPost title="Blog" date="Ongoing" content={<div>Welcome to our blog!</div>} relatedArticles={[]} />} />
+            <Route path="/blog/retirement" element={<RetirementPost />} />
+            <Route path="/blog/forex" element={<ForexPost />} />
+            <Route path="/blog/budgeting" element={<BudgetingPost />} />
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/press" element={<Press />} />
+            <Route path="/security" element={<Security />} />
+            <Route path="/banking-with-purpose" element={<BankingWithPurpose />} />
+            <Route path="/sustainable-accounts" element={<SustainableAccounts />} />
+            <Route path="/sustainability-report" element={<SustainabilityReport />} />
+            <Route path="/green-investments" element={<GreenInvestments />} />
+            <Route path="/download" element={<Download />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>

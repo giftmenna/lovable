@@ -1,611 +1,311 @@
 import axios from 'axios';
 
-// Base URL for the API
-// Update the API_URL configuration
-const API_URL = (() => {
-  if (window.location.hostname === 'localhost') {
-    return 'http://localhost:5001/api';
-  }
-  // For production, use relative path
-  return '/api';
-})();
+// Base URL configuration - use Vite proxy in development
+const API_URL = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api');
 
-// Add API status check
-const checkApiStatus = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/status`);
-    console.log('API Status:', response.data);
-    return true;
-  } catch (error) {
-    console.warn('API not available, falling back to mock data');
-    return false;
-  }
-};
-
-// Update api instance configuration
-// (Removed duplicate api instance creation to avoid redeclaration error)
-
-console.log('Using API URL:', API_URL);
-
-// Initialize localStorage with mock data (USD)
-const initializeLocalStorage = () => {
-  if (!localStorage.getItem('mockUsers')) {
-    localStorage.setItem('mockUsers', JSON.stringify([
-      {
-        id: '1',
-        username: 'admin',
-        full_name: 'Admin User',
-        email: 'admin@example.com',
-        status: 'Active',
-        balance: '100', // USD
-        isAdmin: true,
-        password: 'admin123',
-        avatar: null,
-        pin: '1234',
-      }
-    ]));
-  }
-  if (!localStorage.getItem('mockTransactions')) {
-    localStorage.setItem('mockTransactions', JSON.stringify([
-      {
-        id: 't1',
-        user_id: '1',
-        username: 'admin',
-        type: 'Deposit',
-        amount: 50,
-        description: 'Initial deposit',
-        date_time: new Date().toISOString(),
-        status: 'Completed',
-      },
-      {
-        id: 't2',
-        user_id: '1',
-        username: 'admin',
-        type: 'Withdrawal',
-        amount: 20,
-        description: 'ATM withdrawal',
-        date_time: new Date(Date.now() - 86400000).toISOString(),
-        status: 'Completed',
-      },
-      {
-        id: 't3',
-        user_id: '1',
-        username: 'admin',
-        type: 'P2P',
-        amount: 10,
-        description: 'Payment to friend',
-        date_time: new Date(Date.now() - 2 * 86400000).toISOString(),
-        status: 'Completed',
-        recipient_details: { identifier: 'friend@example.com' },
-      },
-    ]));
-  }
-  if (!localStorage.getItem('mockSettings')) {
-    localStorage.setItem('mockSettings', JSON.stringify({
-      minimum_balance: '10', // USD
-    }));
-  }
-};
-
-initializeLocalStorage();
-
-// Create Axios instance
+// Configure a reusable axios instance with sensible defaults
+// including JSON content‑type and a timeout.  `withCredentials: true`
+// tells axios to send cookies automatically, which we’ll rely on when
+// the server sets an httpOnly cookie on login.
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000,
+  withCredentials: true,
+  validateStatus: (status) => status < 500,
 });
 
-// Add token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Handle 401 responses
+// Global response interceptor for error handling.  If a 401 is
+// encountered we redirect to the login page.  All other errors are
+// logged and rethrown.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data,
+    });
     return Promise.reject(error);
   }
 );
 
-// Utility functions
-const getMockUsers = () => {
-  const users = localStorage.getItem('mockUsers');
-  try {
-    const parsed = users ? JSON.parse(users) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error('Invalid mockUsers data:', e);
-    return [];
-  }
+// User model/type definition
+export type User = {
+  id: string;
+  username: string;
+  email?: string;
+  fullName?: string;
+  full_name?: string;
+  status?: string;
+  balance?: number;
+  // Add other fields as needed
 };
 
-const setMockUsers = (users: any[]) => {
-  localStorage.setItem('mockUsers', JSON.stringify(users));
-};
-
-const getMockTransactions = () => {
-  const transactions = localStorage.getItem('mockTransactions');
-  try {
-    const parsed = transactions ? JSON.parse(transactions) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error('Invalid mockTransactions data:', e);
-    return [];
-  }
-};
-
-const setMockTransactions = (transactions: any[]) => {
-  localStorage.setItem('mockTransactions', JSON.stringify(transactions));
-};
-
-const getMockSettings = () => {
-  const settings = localStorage.getItem('mockSettings');
-  return settings ? JSON.parse(settings) : {};
-};
-
-const setMockSettings = (settings: any) => {
-  localStorage.setItem('mockSettings', JSON.stringify(settings));
-};
-
-const generateId = () => {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-};
-
-// Mock login
-const mockAdminLogin = (username: any, password: string) => {
-  const users = getMockUsers();
-  const user = users.find(u =>
-    u.username === username &&
-    (u.password === password || password === 'admin123')
-  );
-  if (user) {
-    const response = {
-      token: 'mock-jwt-token-' + generateId(),
-      user: {
-        id: user.id,
-        username: user.username,
-        full_name: user.full_name || user.fullName,
-        email: user.email,
-        isAdmin: user.isAdmin || false,
-        avatar: user.avatar || null,
-      }
-    };
-    localStorage.setItem('token', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    return response;
-  }
-  throw new Error('Invalid username or password');
-};
-
-// Auth services
+/**
+ * Authentication API methods.  Note that the login method relies
+ * on the server to set a httpOnly cookie containing the JWT token.
+ * Because `withCredentials: true` is set on our axios instance,
+ * subsequent requests will automatically include the cookie and
+ * authenticate the user.  No token is stored in localStorage or
+ * sessionStorage on the client.
+ */
 export const auth = {
-  login: async (username: any, password: any) => {
+  login: async (username: string, password: string) => {
     try {
-      console.log('Login request:', { username });
-      try {
-        const response = await api.post('/login', { username, password });
-        console.log('Server login response:', response.data);
-        if (response.data && response.data.token && response.data.user) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
-          return response.data;
-        } else {
-          throw new Error('Invalid server response format');
-        }
-      } catch (serverError) {
-        console.log('Server login failed, trying mock login:', serverError);
-        const mockResponse = mockAdminLogin(username, password);
-        console.log('Mock login response:', mockResponse);
-        return mockResponse;
-      }
+      console.log('🔍 [FRONTEND] Login attempt for:', username);
+      const response = await api.post('/login', { username, password });
+      // The backend returns the user object and sets a cookie.  We
+      // return the response data to the caller so they can obtain
+      // information about the logged in user if needed.
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [FRONTEND] Login error:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Login failed. Please try again.');
+    }
+  },
+
+  logout: async () => {
+    try {
+      await api.post('/logout');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Logout error:', error);
       throw error;
     }
   },
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+
+  getCurrentUser: async () => {
+    try {
+      const response = await api.get('/me');
+      return response.data.user;
+    } catch (error) {
+      console.error('Failed to fetch current user:', error);
+      throw error;
+    }
   },
-  getCurrentUser: () => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) return JSON.parse(userStr);
-    return null;
+
+  isLoggedIn: async () => {
+    try {
+      const response = await api.get('/session');
+      return response.data.isLoggedIn;
+    } catch (error) {
+      console.error('Session check error:', error);
+      return false;
+    }
   },
-  isLoggedIn: () => {
-    return !!localStorage.getItem('token');
-  },
-  isAdmin: () => {
-    const user = auth.getCurrentUser();
-    return user && user.isAdmin;
+
+  updateUser: async (userId: string, updates: Partial<User>) => {
+    try {
+      const response = await api.patch(`/users/${userId}`, updates);
+      return response.data.user;
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
   },
 };
 
-// User services
+/**
+ * User management API methods.  The `create` function supports both
+ * public sign‑up and admin‑only user creation.  If the caller sets
+ * `isSignup: true` on the payload, the request will be sent to
+ * `/api/signup`, which is unauthenticated and inserts a new user
+ * record.  Otherwise, it sends a POST to `/api/users`, which is
+ * protected by the admin token.
+ */
 export const users = {
+  create: async (userData: any) => {
+    try {
+      const isSignup = userData.isSignup;
+      if (isSignup) {
+        // Remove the marker from the payload and convert camelCase
+        // fields to snake_case as the server expects.  E.g. `fullName`
+        // becomes `full_name`.
+        delete userData.isSignup;
+        if (userData.fullName && !userData.full_name) {
+          userData.full_name = userData.fullName;
+          delete userData.fullName;
+        }
+        const response = await axios.post(`${API_URL}/signup`, userData, {
+          headers: { 'Content-Type': 'application/json' },
+        });
+        return response.data;
+      }
+      // Admin creation requires authentication.  Use the shared
+      // axios instance so cookies are attached.
+      const response = await api.post('/users', userData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to create user:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to create user');
+    }
+  },
+
   getAll: async () => {
     try {
       const response = await api.get('/users');
-      console.log('Users fetched from server:', response.data);
       return response.data;
     } catch (error) {
-      console.log('Failed to fetch users from API, using mock data:', error);
-      return getMockUsers();
+      console.error('Failed to fetch users:', error);
+      throw error;
     }
   },
-  getById: async (id: any) => {
+
+  delete: async (userId: string) => {
     try {
-      const response = await api.get(`/users/${id}`);
-      console.log('User fetched from server:', response.data);
+      const response = await api.delete(`/users/${userId}`);
       return response.data;
     } catch (error) {
-      console.log('Failed to fetch user from API, using mock data:', error);
-      const mockUsers = getMockUsers();
-      const user = mockUsers.find(u => u.id === id);
-      if (!user) throw new Error('User not found');
-      return user;
+      console.error('Failed to delete user:', error);
+      throw error;
     }
   },
-  create: async (userData: any) => {
+
+  updateStatus: async (userId: string, status: string) => {
     try {
-      console.log('Creating user:', userData);
-      const config = {
-        headers: userData.isSignup ? { 'X-Signup': 'true' } : {}
-      };
-      const response = await api.post('/users', userData, config);
-      console.log('User created on server:', response.data);
-      const mockUsers = getMockUsers();
-      const newUser = {
-        id: response.data.user?.id || generateId(),
-        username: userData.username,
-        full_name: userData.full_name || userData.fullName,
-        email: userData.email,
-        status: 'Active',
-        balance: userData.balance?.toString() || '100', // USD
-        isAdmin: false,
-        password: userData.password,
-        avatar: null,
-        pin: String(userData.pin),
-      };
-      mockUsers.push(newUser);
-      setMockUsers(mockUsers);
-      
-      // Add sample transactions for new user
-      const mockTransactions = getMockTransactions();
-      const newTransactions = [
-        {
-          id: generateId(),
-          user_id: newUser.id,
-          username: newUser.username,
-          type: 'Deposit',
-          amount: 50,
-          description: 'Welcome deposit',
-          date_time: new Date().toISOString(),
-          status: 'Completed',
-        },
-        {
-          id: generateId(),
-          user_id: newUser.id,
-          username: newUser.username,
-          type: 'P2P',
-          amount: 5,
-          description: 'Sample payment',
-          date_time: new Date(Date.now() - 86400000).toISOString(),
-          status: 'Completed',
-          recipient_details: { identifier: 'sample@example.com' },
-        },
-      ];
-      mockTransactions.push(...newTransactions);
-      setMockTransactions(mockTransactions);
-      
-      return response.data || { user: newUser };
-    } catch (error) {
-      console.log('Failed to create user via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const newUser = {
-        id: generateId(),
-        username: userData.username,
-        full_name: userData.full_name || userData.fullName,
-        email: userData.email,
-        status: 'Active',
-        balance: userData.balance?.toString() || '100', // USD
-        isAdmin: false,
-        password: userData.password,
-        avatar: null,
-        pin: String(userData.pin),
-      };
-      mockUsers.push(newUser);
-      setMockUsers(mockUsers);
-      
-      // Add sample transactions for new user
-      const mockTransactions = getMockTransactions();
-      const newTransactions = [
-        {
-          id: generateId(),
-          user_id: newUser.id,
-          username: newUser.username,
-          type: 'Deposit',
-          amount: 50,
-          description: 'Welcome deposit',
-          date_time: new Date().toISOString(),
-          status: 'Completed',
-        },
-        {
-          id: generateId(),
-          user_id: newUser.id,
-          username: newUser.username,
-          type: 'P2P',
-          amount: 5,
-          description: 'Sample payment',
-          date_time: new Date(Date.now() - 86400000).toISOString(),
-          status: 'Completed',
-          recipient_details: { identifier: 'sample@example.com' },
-        },
-      ];
-      mockTransactions.push(...newTransactions);
-      setMockTransactions(mockTransactions);
-      
-      console.log('Created mock user with transactions:', { user: newUser, transactions: newTransactions });
-      return { user: newUser };
-    }
-  },
-  delete: async (id: any) => {
-    try {
-      const response = await api.delete(`/users/${id}`);
-      const mockUsers = getMockUsers();
-      const filteredUsers = mockUsers.filter(user => user.id !== id);
-      setMockUsers(filteredUsers);
+      const response = await api.patch(`/users/${userId}/status`, { status });
       return response.data;
     } catch (error) {
-      console.log('Failed to delete user via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const filteredUsers = mockUsers.filter(user => user.id !== id);
-      setMockUsers(filteredUsers);
-      return { success: true };
+      console.error('Failed to update user status:', error);
+      throw error;
     }
   },
-  updateStatus: async (id: any, status: any) => {
+
+  updateBalance: async (userId: string, balance: number) => {
     try {
-      const response = await api.patch(`/users/${id}/status`, { status });
+      const response = await api.patch(`/users/${userId}/balance`, { balance });
       return response.data;
     } catch (error) {
-      console.log('Failed to update user status via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const userIndex = mockUsers.findIndex(user => user.id === id);
-      if (userIndex !== -1) {
-        mockUsers[userIndex].status = status;
-        setMockUsers(mockUsers);
-      }
-      return mockUsers[userIndex];
+      console.error('Failed to update user balance:', error);
+      throw error;
     }
   },
-  updateBalance: async (id: any, balance: any) => {
+
+  /**
+   * Fetch a single user by ID.  Requires authentication.  Returns
+   * public user fields (no password).
+   */
+  getById: async (userId: string) => {
     try {
-      const response = await api.patch(`/users/${id}/balance`, { balance });
+      const response = await api.get(`/users/${userId}`);
       return response.data;
     } catch (error) {
-      console.log('Failed to update user balance via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const userIndex = mockUsers.findIndex(user => user.id === id);
-      if (userIndex !== -1) {
-        mockUsers[userIndex].balance = balance.toString();
-        setMockUsers(mockUsers);
-      }
-      return mockUsers[userIndex];
+      console.error('Failed to fetch user by ID:', error);
+      throw error;
     }
   },
-  updateAvatar: async (id: any, data: any) => {
+
+  /**
+   * Update a user's avatar.  Expects an object with `avatar` property
+   * containing base64 image data.  Returns updated avatar.
+   */
+  updateAvatar: async (userId: string, data: { avatar: string }) => {
     try {
-      const response = await api.post(`/users/${id}/avatar`, data, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      console.log('Avatar updated on server:', response.data);
+      console.log('🔄 [FRONTEND] Updating avatar for user:', userId);
+      const response = await api.patch(`/users/${userId}/avatar`, data);
+      console.log('✅ [FRONTEND] Avatar update response:', response.data);
       return response.data;
-    } catch (error) {
-      console.log('Failed to update avatar via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const userIndex = mockUsers.findIndex(user => user.id === id);
-      if (userIndex !== -1) {
-        const avatarBase64 = data.avatar; // Expecting base64 string
-        if (!avatarBase64 || !avatarBase64.startsWith('data:image/')) {
-          throw new Error('Invalid avatar data');
-        }
-        mockUsers[userIndex].avatar = avatarBase64;
-        setMockUsers(mockUsers);
-        // Update stored user
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (storedUser.id === id) {
-          storedUser.avatar = avatarBase64;
-          localStorage.setItem('user', JSON.stringify(storedUser));
-        }
-        return { avatar: avatarBase64 };
-      }
-      throw new Error('User not found');
+    } catch (error: any) {
+      console.error('❌ [FRONTEND] Failed to update avatar:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || 'Failed to update avatar');
     }
   },
-  deleteAvatar: async (id: any) => {
+
+  /**
+   * Delete a user's avatar.  Returns a success message.
+   */
+  deleteAvatar: async (userId: string) => {
     try {
-      const response = await api.delete(`/users/${id}/avatar`);
+      const response = await api.delete(`/users/${userId}/avatar`);
       return response.data;
     } catch (error) {
-      console.log('Failed to delete avatar via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const userIndex = mockUsers.findIndex(user => user.id === id);
-      if (userIndex !== -1) {
-        mockUsers[userIndex].avatar = null;
-        setMockUsers(mockUsers);
-        // Update stored user
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (storedUser.id === id) {
-          storedUser.avatar = null;
-          localStorage.setItem('user', JSON.stringify(storedUser));
-        }
-        return { success: true };
-      }
-      throw new Error('User not found');
-    }
-  },
-  verifyPin: async (userId: any, pin: any) => {
-    try {
-      const response = await api.post('/users/verify-pin', { userId, pin });
-      console.log('PIN verified on server:', response.data);
-      return response.data;
-    } catch (error) {
-      console.log('Failed to verify PIN via API, using mock storage:', error);
-      const mockUsers = getMockUsers();
-      const user = mockUsers.find(u => u.id === userId);
-      if (!user) throw new Error('User not found');
-      return { valid: user.pin === String(pin) };
+      console.error('Failed to delete avatar:', error);
+      throw error;
     }
   },
 };
 
-// Transaction services
+/**
+ * Transactions API methods.  All requests are authenticated via
+ * cookies set on login.
+ */
 export const transactions = {
   getAll: async () => {
     try {
       const response = await api.get('/transactions');
-      console.log('Transactions fetched from server:', response.data);
-      if (!Array.isArray(response.data)) {
-        console.error('Invalid transactions response:', response.data);
-        return [];
-      }
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch transactions from API:', error);
-      return getMockTransactions();
+      console.error('Failed to fetch transactions:', error);
+      return [];
     }
   },
-  getByUserId: async (userId: any) => {
-    try {
-      const response = await api.get(`/transactions/user/${userId}`);
-      console.log('User transactions fetched from server:', response.data);
-      if (!Array.isArray(response.data)) {
-        console.error('Invalid user transactions response:', response.data);
-        return [];
-      }
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch transactions for user ${userId}:`, error);
-      const mockTransactions = getMockTransactions();
-      const userTransactions = mockTransactions.filter(t => t.user_id === String(userId));
-      console.log(`Found ${userTransactions.length} transactions for user ${userId}`);
-      return userTransactions;
-    }
-  },
+
   create: async (transactionData: any) => {
     try {
       const response = await api.post('/transactions', transactionData);
-      console.log('Transaction created on server:', response.data);
-      
-      const mockTransactions = getMockTransactions();
-      mockTransactions.push(response.data.transaction);
-      setMockTransactions(mockTransactions);
-      
       return response.data;
     } catch (error) {
-      console.log('Failed to create transaction via API, using mock storage:', error);
-      
-      const mockUsers = getMockUsers();
-      const mockTransactions = getMockTransactions();
-      
-      const user = mockUsers.find(u => u.id === transactionData.user_id);
-      
-      const newTransaction = {
-        id: generateId(),
-        user_id: String(transactionData.user_id),
-        username: user ? user.username : 'Unknown',
-        type: transactionData.type,
-        amount: transactionData.amount,
-        description: transactionData.description || '',
-        date_time: transactionData.date_time || new Date().toISOString(),
-        recipient_details: transactionData.recipient_details || null,
-        status: 'Completed',
-      };
-      
-      if (user) {
-        const currentBalance = parseFloat(user.balance || '0');
-        const amount = parseFloat(transactionData.amount);
-        
-        if (transactionData.type === 'Deposit') {
-          user.balance = (currentBalance + amount).toString();
-        } else if (transactionData.type === 'Withdrawal' || transactionData.type === 'Bank Transfer' || 
-                   transactionData.type === 'Wire Transfer' || transactionData.type === 'P2P') {
-          user.balance = (currentBalance - amount).toString();
-        }
-        
-        const userIndex = mockUsers.findIndex(u => u.id === user.id);
-        if (userIndex !== -1) {
-          mockUsers[userIndex] = user;
-          setMockUsers(mockUsers);
-        }
-      }
-      
-      mockTransactions.push(newTransaction);
-      setMockTransactions(mockTransactions);
-      
-      return { transaction: newTransaction };
+      console.error('Failed to create transaction:', error);
+      throw error;
     }
   },
-  delete: async (id: any) => {
+
+  delete: async (id: string) => {
     try {
       const response = await api.delete(`/transactions/${id}`);
       return response.data;
     } catch (error) {
-      console.log('Failed to delete transaction via API, using mock storage:', error);
-      const mockTransactions = getMockTransactions();
-      const filteredTransactions = mockTransactions.filter(transaction => transaction.id !== id);
-      setMockTransactions(filteredTransactions);
-      return { success: true };
+      console.error('Failed to delete transaction:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Fetch transactions belonging to a specific user.  Admins can
+   * request any user’s transactions; regular users can only request
+   * their own.  Returns an array of transaction records.
+   */
+  getByUserId: async (userId: string) => {
+    try {
+      const response = await api.get(`/users/${userId}/transactions`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch transactions for user:', error);
+      throw error;
     }
   },
 };
 
-// Settings services
+/**
+ * Settings API methods.
+ */
 export const settings = {
   getAll: async () => {
     try {
       const response = await api.get('/settings');
-      console.log('Settings fetched from server:', response.data);
       return response.data;
     } catch (error) {
-      console.log('Failed to fetch settings from API, using mock data:', error);
-      return getMockSettings();
+      console.error('Failed to fetch settings:', error);
+      throw error;
     }
   },
+
   update: async (settingsData: any) => {
     try {
       const response = await api.patch('/settings', settingsData);
-      console.log('Settings updated on server:', response.data);
-      
-      const mockSettings = getMockSettings();
-      const updatedSettings = { ...mockSettings, ...settingsData };
-      setMockSettings(updatedSettings);
-      
       return response.data;
     } catch (error) {
-      console.log('Failed to update settings via API, using mock storage:', error);
-      const mockSettings = getMockSettings();
-      const updatedSettings = { ...mockSettings, ...settingsData };
-      setMockSettings(updatedSettings);
-      return updatedSettings;
+      console.error('Failed to update settings:', error);
+      throw error;
     }
   },
 };
@@ -613,6 +313,7 @@ export const settings = {
 export default {
   auth,
   users,
-  transactions,
   settings,
+  transactions,
+  baseURL: API_URL,
 };

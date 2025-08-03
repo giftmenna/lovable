@@ -730,6 +730,110 @@ export default function Index() {
         </div>
       </section>
       
+      {/* Trusted by Industry Leaders Section */}
+      <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-secondary/20 dark:bg-secondary/10">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">Trusted by Industry Leaders</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Our partnerships with leading financial institutions and regulatory bodies ensure the highest standards of security and compliance.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+            {/* FDIC */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#1E40AF"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">FDIC</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">INSURED</text>
+              </svg>
+            </div>
+            
+            {/* NCUA */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#059669"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">NCUA</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">INSURED</text>
+              </svg>
+            </div>
+            
+            {/* SWIFT */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#DC2626"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">SWIFT</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">NETWORK</text>
+              </svg>
+            </div>
+            
+            {/* Visa */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#1E40AF"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">VISA</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">PAYMENT</text>
+              </svg>
+            </div>
+            
+            {/* Mastercard */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#DC2626"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">MASTER</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">CARD</text>
+              </svg>
+            </div>
+            
+            {/* PCI DSS */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#059669"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">PCI</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">DSS</text>
+              </svg>
+            </div>
+            
+            {/* BBB */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#1E40AF"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">BBB</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">A+ RATING</text>
+              </svg>
+            </div>
+            
+            {/* Moody's */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#CA8A04"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">MOODY'S</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">RATING</text>
+              </svg>
+            </div>
+            
+            {/* ISO */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#6B7280"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">ISO</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">CERTIFIED</text>
+              </svg>
+            </div>
+            
+            {/* Equifax */}
+            <div className="group">
+              <svg className="h-12 w-auto grayscale group-hover:grayscale-0 transition-all duration-300" viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="200" height="80" rx="8" fill="#374151"/>
+                <text x="100" y="30" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold">EQUIFAX</text>
+                <text x="100" y="50" textAnchor="middle" fill="white" fontSize="12">CREDIT</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+      
       <Footer />
     </Layout>
   );

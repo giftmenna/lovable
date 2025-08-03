@@ -15,12 +15,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
-import { users, transactions, settings } from "@/services/api";
+import api from "@/services/api";
+
 import { z } from "zod";
 import { CircleCheck, Printer } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-// Error Boundary
+const { users, transactions, settings } = api;
+
 class ErrorBoundary extends Component<React.PropsWithChildren<{}>> {
   state = { hasError: false, error: null };
   static getDerivedStateFromError(error: any) {
@@ -32,10 +34,7 @@ class ErrorBoundary extends Component<React.PropsWithChildren<{}>> {
         <div className="text-center p-4">
           <h2 className="text-xl font-bold text-destructive">Something went wrong</h2>
           <p>{this.state.error?.message || "Please try again later."}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="mt-4"
-          >
+          <Button onClick={() => window.location.reload()} className="mt-4">
             Try Again
           </Button>
         </div>
@@ -157,33 +156,37 @@ export default function TransferMoney() {
   };
   
   // Handle PIN verification
-  const verifyPin = async () => {
-    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
-      toast.error("Please enter a valid 4-digit PIN.");
+ const verifyPin = async () => {
+  if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+    toast.error("Please enter a valid 4-digit PIN.");
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    if (!currentUser?.id) {
+      throw new Error("User not authenticated.");
+    }
+
+    console.log("Verifying PIN for user:", { userId: currentUser.id, pin });
+
+    // ✅ FIXED: call verifyPin from destructured 'users'
+    const pinResponse = await users.verifyPin(currentUser.id, pin);
+
+    console.log("PIN verification response:", pinResponse);
+
+    if (!pinResponse.valid) {
+      toast.error("Invalid PIN. Please try again.");
+      setIsLoading(false);
       return;
     }
-    
-    setIsLoading(true);
-    
-    try {
-      if (!currentUser?.id) {
-        throw new Error("User not authenticated.");
-      }
-      console.log("Verifying PIN for user:", { userId: currentUser.id, pin });
-      const pinResponse = await users.verifyPin(currentUser.id, pin);
-      console.log("PIN verification response:", pinResponse);
-      
-      if (!pinResponse.valid) {
-        toast.error("Invalid PIN. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-      
-      startTransactionProcess();
-    } catch (error) {
-      console.error("Error verifying PIN:", error);
-      toast.error("Failed to verify PIN. Please try again.");
-      setIsLoading(false);
+
+    startTransactionProcess();
+  } catch (error) {
+    console.error("Error verifying PIN:", error);
+    toast.error("Failed to verify PIN. Please try again.");
+    setIsLoading(false);
     }
   };
   
@@ -213,13 +216,6 @@ export default function TransferMoney() {
       let recipientDetails;
       
       switch (currentTransaction.transferType) {
-        case "Bank Transfer":
-          recipientDetails = {
-            name: currentTransaction.recipientName,
-            accountNumber: currentTransaction.accountNumber,
-            routingNumber: currentTransaction.routingNumber,
-          };
-          break;
         case "Wire Transfer":
           recipientDetails = {
             name: currentTransaction.recipientName,
@@ -227,6 +223,13 @@ export default function TransferMoney() {
             swiftCode: currentTransaction.swiftCode,
             bankName: currentTransaction.bankName,
             bankAddress: currentTransaction.bankAddress,
+          };
+          break;
+           case "Bank Transfer":
+          recipientDetails = {
+            name: currentTransaction.recipientName,
+            accountNumber: currentTransaction.accountNumber,
+            routingNumber: currentTransaction.routingNumber,
           };
           break;
         case "P2P":
@@ -238,7 +241,7 @@ export default function TransferMoney() {
       
       const response = await transactions.create({
         user_id: currentUser.id,
-        type: currentTransaction.transferType,
+        type: "Transfer", // All transfer types should be "Transfer" for balance updates
         amount: currentTransaction.amount,
         description: currentTransaction.memo || `${currentTransaction.transferType} Transaction`,
         date_time: new Date().toISOString(),
@@ -419,7 +422,7 @@ ${currentTransaction.memo ? `Memo: ${currentTransaction.memo}` : ''}
                               <FormItem>
                                 <FormLabel>Recipient Name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="John Doe" {...field} />
+                                  <Input placeholder="Kim Joon" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -463,7 +466,7 @@ ${currentTransaction.memo ? `Memo: ${currentTransaction.memo}` : ''}
                               <FormItem>
                                 <FormLabel>Recipient Name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="John Doe" {...field} />
+                                  <Input placeholder="Kim Joon" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -532,7 +535,7 @@ ${currentTransaction.memo ? `Memo: ${currentTransaction.memo}` : ''}
                             <FormItem>
                               <FormLabel>Recipient Email or Phone</FormLabel>
                               <FormControl>
-                                <Input placeholder="johndoe@example.com or +1234567890" {...field} />
+                                <Input placeholder="kimjoon@example.com or +1234567890" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

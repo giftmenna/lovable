@@ -1,7 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { auth } from '../services/api';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import services from "@/services/api";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -9,121 +15,144 @@ interface User {
   fullName: string;
   email: string;
   isAdmin: boolean;
-  avatar?: string; // Added avatar property as optional
+  balance?: number;
+  avatar?: string;
+  status?: string;
 }
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<any>;
-  logout: () => void;
+  login: (username: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
   isAdmin: boolean;
-  updateCurrentUser: (user: User) => void; // <-- Add this
+  updateCurrentUser: (updates: Partial<User>) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  loading: true,
-  login: async () => ({}),
-  logout: () => {},
-  isAdmin: false,
-  updateCurrentUser: () => {}, // <-- Add this
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Enhanced user session check on app initialization
+  // On mount, check if the user is already logged in by hitting /api/me
   useEffect(() => {
-    const checkAuthStatus = () => {
+    const fetchCurrentUser = async () => {
       try {
-        // Check if user is already logged in
-        const user = auth.getCurrentUser();
-        
+        const user = await services.auth.getCurrentUser();
         if (user) {
-          console.log('Found user in localStorage:', user);
           setCurrentUser(user);
         } else {
-          console.log('No user found in localStorage');
+          setCurrentUser(null);
         }
-      } catch (err) {
-        console.error('Authentication check error:', err);
-        // Handle invalid tokens by logging out
-        auth.logout();
+      } catch {
         setCurrentUser(null);
       } finally {
         setLoading(false);
       }
     };
-    
-    checkAuthStatus();
+    fetchCurrentUser();
   }, []);
 
-  const login = async (username: string, password: string) => {
+  // Updated login returns the user object
+  const login = async (username: string, password: string): Promise<User> => {
+    setLoading(true);
     try {
-      setLoading(true);
-      console.log('Attempting login for user:', username);
+      // This call sets the JWT cookie
+      const loginResponse = await services.auth.login(username, password);
+      const user = loginResponse.user;
       
-      const response = await auth.login(username, password);
-      
-      // Check if we have a response and it contains a user object
-      if (response && response.user) {
-        console.log('Login successful:', response);
-        setCurrentUser(response.user);
-        
-        const displayName = response.user.fullName || response.user.username;
-        toast.success(`Welcome back, ${displayName}!`);
-        
-        // Add a slight delay before redirecting to allow toast to be seen
-        setTimeout(() => {
-          if (response.user.isAdmin) {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
-        }, 500);
-        
-        return response;
-      } else {
-        console.error('Invalid login response structure:', response);
-        throw new Error('Invalid login response structure');
+      if (!user) {
+        throw new Error("No user data found after login");
       }
+      
+      setCurrentUser(user);
+      toast.success(
+        `Welcome back, ${user.fullName || user.username}!`
+      );
+      
+      // Redirect based on admin flag
+      if (user.isAdmin) {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+      
+      return user;
     } catch (error: any) {
-      console.error('Login error:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed. Please try again.';
-      toast.error(errorMessage);
+      toast.error(error.message || "Login failed. Please try again.");
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
-    auth.logout();
-    setCurrentUser(null);
-    toast.info('You have been logged out.');
-    navigate('/login');
+  const logout = async () => {
+    try {
+      await services.auth.logout();
+      setCurrentUser(null);
+      toast.info("You have been logged out.");
+      navigate("/login");
+    } catch (error) {
+      toast.error("Failed to log out. Please try again.");
+    }
   };
 
-  // Add this function to allow updating the user from anywhere (e.g., avatar)
-  const updateCurrentUser = (user: User) => {
-    setCurrentUser(user);
-    // Optionally update localStorage or wherever your auth.getCurrentUser() reads from
-    localStorage.setItem('user', JSON.stringify(user));
+  const updateCurrentUser = async (updates: Partial<User>) => {
+    if (!currentUser) return;
+    try {
+      const updated = await services.auth.updateUser(currentUser.id, updates);
+      setCurrentUser(updated);
+      toast.success("User profile updated successfully.");
+    } catch {
+      toast.error("Failed to update profile. Please try again.");
+    }
   };
 
-  const value = {
+  const refreshUser = async () => {
+    try {
+      const user = await services.auth.getCurrentUser();
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        throw new Error("No user data found");
+      }
+    } catch {
+      toast.error("Failed to refresh user data.");
+    }
+  };
+
+  const value: AuthContextType = {
     currentUser,
     loading,
     login,
     logout,
     isAdmin: currentUser?.isAdmin || false,
-    updateCurrentUser, // <-- Add this
+    updateCurrentUser,
+    refreshUser,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-bank-gold"></div>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthContext.Provider>
+  );
 };

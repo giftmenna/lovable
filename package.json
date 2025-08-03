@@ -1,11 +1,22 @@
 {
+<<<<<<< HEAD
     "name": "vite_react_shadcn_ts",
     "private": true,
     "version": "0.0.0",
+=======
+    "name": "lovable-server",
+    "private": true,
+    "version": "1.0.0",
+>>>>>>> c3d83d0 (Push full project files)
     "type": "module",
     "scripts": {
         "dev": "vite",
         "start": "node server/index.js",
+<<<<<<< HEAD
+=======
+        "dev:server": "cd server && npm run dev",
+        "start:dev": "concurrently \"npm run dev\" \"npm run dev:server\"",
+>>>>>>> c3d83d0 (Push full project files)
         "build": "vite build",
         "build:dev": "vite build --mode development",
         "lint": "eslint .",
@@ -53,9 +64,16 @@
         "connect-history-api-fallback": "^2.0.0",
         "cors": "^2.8.5",
         "date-fns": "^3.6.0",
+<<<<<<< HEAD
         "dotenv": "^16.0.3",
         "embla-carousel-react": "^8.3.0",
         "express": "^5.1.0",
+=======
+        "dotenv": "^16.5.0",
+        "embla-carousel-react": "^8.3.0",
+        "express": "^5.1.0",
+        "express-validator": "^7.2.1",
+>>>>>>> c3d83d0 (Push full project files)
         "input-otp": "^1.2.4",
         "jsonwebtoken": "^9.0.2",
         "lucide-react": "^0.462.0",
@@ -85,6 +103,10 @@
         "@types/react-dom": "^18.3.0",
         "@vitejs/plugin-react-swc": "^3.5.0",
         "autoprefixer": "^10.4.20",
+<<<<<<< HEAD
+=======
+        "concurrently": "^9.1.2",
+>>>>>>> c3d83d0 (Push full project files)
         "eslint": "^9.9.0",
         "eslint-plugin-react-hooks": "^5.1.0-rc.0",
         "eslint-plugin-react-refresh": "^0.4.9",

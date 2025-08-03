@@ -162,16 +162,19 @@ export default function AdminUsers() {
     }
   };
 
-  const handleUpdateBalance = () => {
-    if (!selectedUser || !newBalance || isNaN(parseFloat(newBalance)) || parseFloat(newBalance) < 0) {
-      toast.error("Please enter a valid positive number");
-      return;
-    }
-    updateBalanceMutation.mutate({
-      id: selectedUser.id,
-      balance: parseFloat(newBalance),
-    });
-  };
+ const handleUpdateBalance = () => {
+  const amount = parseFloat(newBalance);
+  if (!selectedUser || isNaN(amount) || amount < 0) {
+    toast.error("Please enter a valid positive number");
+    return;
+  }
+  const current = parseFloat(selectedUser.balance || "0");
+  updateBalanceMutation.mutate({
+    id: selectedUser.id,
+    balance: current + amount,   // add the delta to the current balance
+  });
+};
+
 
   const openBalanceDialog = (user: any) => {
     setSelectedUser(user);
